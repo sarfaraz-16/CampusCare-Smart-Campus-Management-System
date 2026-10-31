@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Campus Facilities Analytics – CampusCare{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3.5rem 1.5rem;">
+    <!-- Analytics Header -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2.5rem;">
+        <div>
+            <span class="badge badge-category" style="margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-chart-line text-cyan-400"></i> Operational Intelligence
+            </span>
+            <h2 style="font-size: 2.2rem; font-weight: 800;">
+                Campus Facilities <span class="gradient-text">Analytics</span>
+            </h2>
+            <p style="color: var(--text-secondary); margin-top: 0.25rem;">
+                Real-time metrics, categorical distribution, and resolution performance analytics.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+            {% if current_user and current_user['role'] == 'admin' %}
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-arrow-left"></i> Return to Admin Hub
+                </a>
+            {% elif current_user %}
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-arrow-left"></i> Return to Dashboard
+                </a>
+            {% endif %}
+            <button onclick="window.print()" class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-print"></i> Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- High-level KPI Cards -->
+    <div class="stats-grid" style="margin-bottom: 2.5rem;">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <span class="stat-label">Total Reports Lodged</span>
+                <div class="stat-icon purple"><i class="fa-solid fa-folder-open"></i></div>
+            </div>
+            <div class="stat-value">{{ total_complaints }}</div>
+            <div class="stat-subtext">All time campus tickets</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <span class="stat-label">Resolution Rate</span>
+                <div class="stat-icon green"><i class="fa-solid fa-bullseye"></i></div>
+            </div>
+            <div class="stat-value" style="color: #34d399;">{{ resolution_rate }}%</div>
+            <div class="stat-subtext">{{ resolved_complaints }} tickets solved</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <span class="stat-label">Active Work Orders</span>
+                <div class="stat-icon blue"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+            </div>
+            <div class="stat-value" style="color: #60a5fa;">{{ in_progress_complaints + pending_complaints }}</div>
+            <div class="stat-subtext">{{ pending_complaints }} pending, {{ in_progress_complaints }} underway</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <span class="stat-label">Urgent / Safety Risks</span>
+                <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+            <div class="stat-value" style="color: #f87171;">{{ urgent_count }}</div>
+            <div class="stat-subtext">High priority interventions</div>
+        </div>
+    </div>
+
+    <!-- Interactive Charts Grid -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+        <!-- Chart 1: Category Distribution -->
+        <div class="glass-card" style="padding: 1.75rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                <h4 style="font-size: 1.15rem; font-weight: 700; color: #fff;">
+                    <i class="fa-solid fa-chart-pie text-primary-light"></i> Category-wise Statistics
+                </h4>
+                <span class="badge badge-category">Donut View</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="categoryDistributionChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2: Status Pipeline -->
+        <div class="glass-card" style="padding: 1.75rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                <h4 style="font-size: 1.15rem; font-weight: 700; color: #fff;">
+                    <i class="fa-solid fa-arrows-spin text-cyan-400"></i> Resolution Status Breakdown
+                </h4>
+                <span class="badge badge-category">Status Share</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="statusPipelineChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 3: Priority Severity Matrix -->
+        <div class="glass-card" style="padding: 1.75rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                <h4 style="font-size: 1.15rem; font-weight: 700; color: #fff;">
+                    <i class="fa-solid fa-signal text-amber-400"></i> Priority Severity Distribution
+                </h4>
+                <span class="badge badge-category">Volume by Tier</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="priorityMatrixChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 4: Department Activity -->
+        <div class="glass-card" style="padding: 1.75rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                <h4 style="font-size: 1.15rem; font-weight: 700; color: #fff;">
+                    <i class="fa-solid fa-building-columns text-purple-400"></i> Reports by Academic Department
+                </h4>
+                <span class="badge badge-category">Top Departments</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="departmentActivityChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}

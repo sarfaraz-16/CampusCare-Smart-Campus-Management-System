@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}CampusCare – Smart Campus Management System | Hackathon Edition{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Animated Hero Glows -->
+<div class="hero-glow-1"></div>
+<div class="hero-glow-2"></div>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-grid">
+            <!-- Left Hero Content -->
+            <div class="hero-left">
+                <div class="hero-tag">
+                    <span class="pulse-dot"></span>
+                    <span>Smart Campus Automation &middot; Live System</span>
+                </div>
+                <h1 class="hero-title">
+                    Empowering Campuses with <span class="gradient-text-accent">Smarter Facility</span> Care
+                </h1>
+                <p class="hero-description">
+                    A centralized, intelligent platform for students to report infrastructure issues and administrators to prioritize, track, and resolve problems with transparent keyword intelligence.
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="hero-cta-group">
+                    {% if current_user %}
+                        {% if current_user['role'] == 'admin' %}
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-lg btn-glow">
+                                <i class="fa-solid fa-gauge-high"></i> Open Admin Control
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('report_issue') }}" class="btn btn-primary btn-lg btn-glow">
+                                <i class="fa-solid fa-plus-circle"></i> Report an Issue
+                            </a>
+                            <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-lg">
+                                <i class="fa-solid fa-table-columns"></i> View My Dashboard
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg btn-glow">
+                            <i class="fa-solid fa-user-plus"></i> Get Started Free
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-secondary btn-lg">
+                            <i class="fa-solid fa-right-to-bracket"></i> Student / Admin Login
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('track_issue') }}" class="btn btn-accent btn-lg">
+                        <i class="fa-solid fa-magnifying-glass"></i> Track by ID
+                    </a>
+                </div>
+
+                <!-- Stats Bar -->
+                <div class="hero-stats-row">
+                    <div class="hero-stat-item">
+                        <div class="hero-stat-number gradient-text">{{ total_complaints }}</div>
+                        <div class="hero-stat-label">Issues Reported</div>
+                    </div>
+                    <div class="hero-stat-item">
+                        <div class="hero-stat-number" style="color: #34d399;">{{ resolution_rate }}%</div>
+                        <div class="hero-stat-label">Resolution Rate</div>
+                    </div>
+                    <div class="hero-stat-item">
+                        <div class="hero-stat-number" style="color: #60a5fa;">{{ active_students }}</div>
+                        <div class="hero-stat-label">Enrolled Students</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Hero 3D Mockup Visual -->
+            <div class="hero-right">
+                <div class="hero-visual-card">
+                    <div class="mockup-header">
+                        <div class="mockup-dots">
+                            <span class="mockup-dot red"></span>
+                            <span class="mockup-dot yellow"></span>
+                            <span class="mockup-dot green"></span>
+                        </div>
+                        <span class="mockup-title"><i class="fa-solid fa-terminal"></i> campuscare-engine v2.0</span>
+                        <span class="badge badge-resolved"><span class="badge-dot"></span> Active</span>
+                    </div>
+
+                    <!-- Live Complaint Simulation Cards -->
+                    <div class="floating-preview-item">
+                        <div class="preview-item-left">
+                            <div class="preview-icon-box electric">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <div class="preview-item-info">
+                                <h5>Spark in Lab 4 Switchboard</h5>
+                                <p>Science Block B &middot; CC-2026-1001</p>
+                            </div>
+                        </div>
+                        <span class="badge badge-priority-urgent"><i class="fa-solid fa-triangle-exclamation"></i> Urgent</span>
+                    </div>
+
+                    <div class="floating-preview-item">
+                        <div class="preview-item-left">
+                            <div class="preview-icon-box wifi">
+                                <i class="fa-solid fa-wifi"></i>
+                            </div>
+                            <div class="preview-item-info">
+                                <h5>Wi-Fi Latency in Library 2nd Floor</h5>
+                                <p>Central Library &middot; CC-2026-1002</p>
+                            </div>
+                        </div>
+                        <span class="badge badge-priority-high"><i class="fa-solid fa-bolt"></i> High</span>
+                    </div>
+
+                    <div class="floating-preview-item">
+                        <div class="preview-item-left">
+                            <div class="preview-icon-box water">
+                                <i class="fa-solid fa-droplet"></i>
+                            </div>
+                            <div class="preview-item-info">
+                                <h5>Restroom Flush Valve Leak</h5>
+                                <p>Academic Block A &middot; CC-2026-1003</p>
+                            </div>
+                        </div>
+                        <span class="badge badge-resolved"><span class="badge-dot"></span> Resolved</span>
+                    </div>
+
+                    <!-- Real-time Classification Engine Preview -->
+                    <div class="ai-simulation-box">
+                        <div class="ai-sim-header">
+                            <span><i class="fa-solid fa-wand-magic-sparkles"></i> SMART KEYWORD HEURISTIC ENGINE</span>
+                            <span style="color: #a78bfa;">100% Local / Free</span>
+                        </div>
+                        <div class="ai-sim-tags">
+                            <span class="ai-sim-tag"><i class="fa-solid fa-check text-emerald-400"></i> Keyword Extraction</span>
+                            <span class="ai-sim-tag"><i class="fa-solid fa-check text-emerald-400"></i> Safety Hazard Urgency</span>
+                            <span class="ai-sim-tag"><i class="fa-solid fa-check text-emerald-400"></i> Auto Routing</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Judge / Demo One-Click Access -->
+        <div class="judge-demo-bar">
+            <div class="judge-demo-info">
+                <div class="judge-icon-pill">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <div>
+                    <h5 style="font-size: 1rem; font-weight: 700; color: #fff;">Hackathon Judge / Evaluation Quick Access</h5>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Explore both student reporting & administrator control with 1 click without manual typing:</p>
+                </div>
+            </div>
+            <div class="judge-demo-buttons" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="{{ url_for('login', demo='student') }}" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-user-graduate text-cyan-400"></i> Demo Student Portal
+                </a>
+                <a href="{{ url_for('login', demo='admin') }}" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-user-shield text-purple-300"></i> Demo Admin Portal
+                </a>
+                <a href="{{ url_for('qr_station') }}" class="btn btn-secondary btn-sm" style="border-color: rgba(112, 214, 198, 0.5); color: var(--secondary);">
+                    <i class="fa-solid fa-qrcode"></i> QR Placards Station
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Latest Announcements Ticker -->
+{% if announcements %}
+<section class="ticker-section">
+    <div class="container">
+        <div class="ticker-card">
+            <div class="ticker-badge">
+                <i class="fa-solid fa-bullhorn"></i> Campus Notice
+            </div>
+            <div class="ticker-content">
+                <div class="ticker-headline">
+                    <strong>{{ announcements[0]['title'] }}:</strong> {{ announcements[0]['content'] }}
+                </div>
+                <span class="badge badge-category" style="margin-left: 1rem;">{{ announcements[0]['created_at']|format_date }}</span>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Core Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-subtitle">Core Architecture</span>
+            <h2 class="section-title">Designed for Fast, Accountable Resolutions</h2>
+            <p class="section-desc">Everything needed to transform chaotic campus maintenance complaints into an organized, transparent operational pipeline.</p>
+        </div>
+
+        <div class="features-grid">
+            <!-- Feature 1 -->
+            <div class="glass-card feature-card glass-card-interactive">
+                <div class="feature-icon-wrapper purple">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <h3>Smart Keyword Classification</h3>
+                <p>Rule-based natural language parser analyzes complaint title and text to categorize issues into Electricity, Water, Wi-Fi, Infrastructure, etc. without paid APIs.</p>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="glass-card feature-card glass-card-interactive">
+                <div class="feature-icon-wrapper rose">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3>Automated Priority Triage</h3>
+                <p>Urgent safety risks like electrical sparks, smoke, gas leaks, or stuck elevators are immediately flagged as <strong>Urgent</strong> for emergency dispatch.</p>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="glass-card feature-card glass-card-interactive">
+                <div class="feature-icon-wrapper cyan">
+                    <i class="fa-solid fa-barcode"></i>
+                </div>
+                <h3>Unique ID Complaint Tracking</h3>
+                <p>Every report receives a verifiable tracking ID like <code>CC-2026-1001</code>. Students and staff can track real-time lifecycle progression at any time.</p>
+            </div>
+
+            <!-- Feature 4 -->
+            <div class="glass-card feature-card glass-card-interactive">
+                <div class="feature-icon-wrapper blue">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+                <h3>Visual Evidence Uploads</h3>
+                <p>Attach photo evidence of damaged infrastructure, broken pipes, or faulty hardware with preview capabilities for technician inspection.</p>
+            </div>
+
+            <!-- Feature 5 -->
+            <div class="glass-card feature-card glass-card-interactive">
+                <div class="feature-icon-wrapper emerald">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <h3>Visual Analytics Dashboard</h3>
+                <p>Interactive Chart.js visualizations for administrators to monitor category distributions, resolution rates, and department maintenance trends.</p>
+            </div>
+
+            <!-- Feature 6 -->
+            <div class="glass-card feature-card glass-card-interactive">
+                <div class="feature-icon-wrapper amber">
+                    <i class="fa-solid fa-bullhorn"></i>
+                </div>
+                <h3>Live Campus Announcements</h3>
+                <p>Broadcast maintenance schedules, power outage alerts, and campus-wide updates directly to student dashboards with priority tags.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="how-it-works-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-subtitle">Workflow Lifecycle</span>
+            <h2 class="section-title">How CampusCare Works</h2>
+            <p class="section-desc">From initial problem discovery to final technician resolution in 4 simple steps.</p>
+        </div>
+
+        <div class="workflow-steps-grid">
+            <div class="workflow-card">
+                <div class="workflow-number">01</div>
+                <h4>Report & Snap</h4>
+                <p>Student submits the issue with title, description, building location, and optional photo attachment.</p>
+            </div>
+
+            <div class="workflow-card">
+                <div class="workflow-number">02</div>
+                <h4>Smart Triage</h4>
+                <p>Keyword heuristic engine calculates category confidence and auto-assigns urgent or high priority based on safety criteria.</p>
+            </div>
+
+            <div class="workflow-card">
+                <div class="workflow-number">03</div>
+                <h4>Action & Dispatch</h4>
+                <p>Administrators review reports on the centralized portal, update status to 'In Progress', and record technician notes.</p>
+            </div>
+
+            <div class="workflow-card">
+                <div class="workflow-number">04</div>
+                <h4>Resolved & Verified</h4>
+                <p>Once fixed, status changes to 'Resolved', recording exact completion timestamps for students to verify on their tracking timeline.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Banner -->
+<section style="padding: 6rem 0; text-align: center;">
+    <div class="container">
+        <div class="glass-panel" style="padding: 4rem 2rem; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50%; left: 50%; transform: translateX(-50%); width: 400px; height: 400px; background: radial-gradient(circle, rgba(112, 214, 198, 0.2) 0%, transparent 70%); filter: blur(50px); pointer-events: none;"></div>
+            <h2 style="font-size: 2.4rem; margin-bottom: 1rem;">Experience CampusCare in Action</h2>
+            <p style="color: var(--text-secondary); max-width: 580px; margin: 0 auto 2rem; font-size: 1.1rem;">
+                Step inside the future of college maintenance automation. Try logging an issue or inspect administrative resolutions.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('report_issue') }}" class="btn btn-primary btn-lg btn-glow">
+                    <i class="fa-solid fa-plus-circle"></i> Lodge a Test Complaint
+                </a>
+                <a href="{{ url_for('analytics') }}" class="btn btn-secondary btn-lg">
+                    <i class="fa-solid fa-chart-column"></i> View Live Analytics
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard – CampusCare{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-user">
+            <div class="user-avatar">
+                {{ current_user['name'][0] }}
+            </div>
+            <div class="user-meta">
+                <h5>{{ current_user['name'] }}</h5>
+                <span class="user-role-badge"><i class="fa-solid fa-graduation-cap"></i> {{ current_user['student_id'] or 'Student' }}</span>
+            </div>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li class="sidebar-heading">Menu</li>
+            <li>
+                <a href="{{ url_for('student_dashboard') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-house-user"></i>
+                    <span>My Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('report_issue') }}" class="sidebar-link">
+                    <i class="fa-solid fa-circle-plus text-primary-light"></i>
+                    <span>Report New Issue</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('track_issue') }}" class="sidebar-link">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Track Ticket ID</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('analytics') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Campus Analytics</span>
+                </a>
+            </li>
+
+            <li class="sidebar-heading">Filter Reports</li>
+            <li>
+                <a href="{{ url_for('student_dashboard', status='all') }}" class="sidebar-link {% if current_filter == 'all' %}active{% endif %}">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>All Reports ({{ total_count }})</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('student_dashboard', status='Reported') }}" class="sidebar-link {% if current_filter in ('Reported', 'Pending') %}active{% endif %}">
+                    <i class="fa-solid fa-hourglass-start text-amber-400"></i>
+                    <span>Reported ({{ pending_count }})</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('student_dashboard', status='In Progress') }}" class="sidebar-link {% if current_filter == 'In Progress' %}active{% endif %}">
+                    <i class="fa-solid fa-screwdriver-wrench text-blue-400"></i>
+                    <span>In Progress ({{ in_progress_count }})</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('student_dashboard', status='Resolved') }}" class="sidebar-link {% if current_filter == 'Resolved' %}active{% endif %}">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    <span>Resolved ({{ resolved_count }})</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #f87171;">
+                <i class="fa-solid fa-arrow-right-from-bracket" style="color: #f87171;"></i>
+                <span>Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="dashboard-main">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-title-group">
+                <h2>Welcome back, <span class="gradient-text">{{ current_user['name'].split()[0] }}</span></h2>
+                <p>{{ current_user['department'] }} &middot; Track your grievances and campus facility updates</p>
+            </div>
+            <div class="dashboard-actions">
+                <a href="{{ url_for('report_issue') }}" class="btn btn-primary btn-glow">
+                    <i class="fa-solid fa-plus-circle"></i> Report New Grievance
+                </a>
+            </div>
+        </div>
+
+        <!-- Campus Broadcast Announcement Alert (if any) -->
+        {% if announcements %}
+        <div class="glass-card" style="padding: 1.25rem 1.5rem; margin-bottom: 2rem; border-left: 4px solid var(--primary); background: linear-gradient(90deg, rgba(195, 232, 141, 0.12) 0%, var(--surface) 100%);">
+            <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                <div style="font-size: 1.5rem; color: var(--primary-light); margin-top: 0.1rem;">
+                    <i class="fa-solid fa-bullhorn"></i>
+                </div>
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                        <h4 style="font-size: 1rem; font-weight: 700; color: #fff;">
+                            Campus Notice: {{ announcements[0]['title'] }}
+                        </h4>
+                        <span class="badge {% if announcements[0]['priority'] == 'Urgent' %}badge-priority-urgent{% elif announcements[0]['priority'] == 'Important' %}badge-priority-high{% else %}badge-category{% endif %}">
+                            {{ announcements[0]['priority'] }}
+                        </span>
+                    </div>
+                    <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0.35rem; line-height: 1.5;">
+                        {{ announcements[0]['content'] }}
+                    </p>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem;">
+                        Broadcast by {{ announcements[0]['author_name'] }} &middot; {{ announcements[0]['created_at']|format_dt }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- KPI Metric Cards Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Total Reported</span>
+                    <div class="stat-icon purple"><i class="fa-solid fa-folder-open"></i></div>
+                </div>
+                <div class="stat-value">{{ total_count }}</div>
+                <div class="stat-subtext">All submitted issues</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Reported / Pending</span>
+                    <div class="stat-icon yellow"><i class="fa-solid fa-clock"></i></div>
+                </div>
+                <div class="stat-value" style="color: #fbbf24;">{{ pending_count }}</div>
+                <div class="stat-subtext">Awaiting administrative triage</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">In Progress</span>
+                    <div class="stat-icon blue"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                </div>
+                <div class="stat-value" style="color: #60a5fa;">{{ in_progress_count }}</div>
+                <div class="stat-subtext">Technicians actively working</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Resolved</span>
+                    <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+                </div>
+                <div class="stat-value" style="color: #34d399;">{{ resolved_count }}</div>
+                <div class="stat-subtext">Successfully fixed</div>
+            </div>
+        </div>
+
+        <!-- Issues List Section Header & Search -->
+        <div class="filter-toolbar" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div class="filter-search" style="max-width: 380px; flex: 1;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <form method="GET" action="{{ url_for('student_dashboard') }}">
+                    <input type="hidden" name="status" value="{{ current_filter }}">
+                    <input type="text" name="q" class="form-control" placeholder="Search title, ID, block or room..." value="{{ search_query }}">
+                </form>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Status:</span>
+                <div class="segmented-filter-bar">
+                    <a href="{{ url_for('student_dashboard', status='all', q=search_query) }}" class="filter-pill-btn {% if current_filter == 'all' %}active{% endif %}">All</a>
+                    <a href="{{ url_for('student_dashboard', status='Reported', q=search_query) }}" class="filter-pill-btn {% if current_filter in ('Reported', 'Pending') %}active{% endif %}">Reported</a>
+                    <a href="{{ url_for('student_dashboard', status='In Progress', q=search_query) }}" class="filter-pill-btn {% if current_filter == 'In Progress' %}active{% endif %}">In Progress</a>
+                    <a href="{{ url_for('student_dashboard', status='Resolved', q=search_query) }}" class="filter-pill-btn {% if current_filter == 'Resolved' %}active{% endif %}">Resolved</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table of Issues -->
+        {% set issue_list = issues or complaints %}
+        {% if issue_list %}
+        <div class="table-responsive glass-card" style="padding: 0; overflow-x: auto; max-height: 600px; border-radius: var(--radius-lg);">
+            <table class="data-table data-table-sticky data-table-minimal" style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th style="min-width: 140px;">Ticket ID</th>
+                        <th style="min-width: 240px;">Grievance & Department</th>
+                        <th>Category</th>
+                        <th>Location</th>
+                        <th>Severity</th>
+                        <th>SLA Countdown</th>
+                        <th>Status</th>
+                        <th style="text-align: right; min-width: 100px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in issue_list %}
+                    <tr>
+                        <td>
+                            <span class="tracking-code-pill" data-copy="{{ item['ticket_id'] or item['tracking_id'] }}" title="Click to copy ticket code">
+                                <i class="fa-solid fa-copy"></i> {{ item['ticket_id'] or item['tracking_id'] }}
+                            </span>
+                            <div style="font-size: 0.72rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 0.3rem;">
+                                <i class="fa-regular fa-clock"></i> {{ item['created_at']|timeago }}
+                            </div>
+                        </td>
+                        <td>
+                            <strong style="color: var(--text-primary); font-size: 0.92rem; display: block; margin-bottom: 0.2rem;">{{ item['title'] }}</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.35rem;">
+                                {{ item['description'] }}
+                            </div>
+                            <span class="dept-tag">
+                                <i class="fa-solid fa-building-user"></i> {{ item['assigned_dept'] or (item['category']|department_for) }}
+                            </span>
+                            {% if item['resolution_notes'] or item['admin_notes'] %}
+                                <div style="font-size: 0.75rem; color: var(--status-resolved); margin-top: 0.3rem;">
+                                    <i class="fa-solid fa-clipboard-check"></i> {{ item['resolution_notes'] or item['admin_notes'] }}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-category">
+                                {% if item['category'] in ('Electrical', 'Electricity') %}
+                                    <i class="fa-solid fa-bolt" style="color: var(--status-warning);"></i>
+                                {% elif item['category'] in ('Water & Plumbing', 'Water Supply') %}
+                                    <i class="fa-solid fa-droplet" style="color: var(--secondary);"></i>
+                                {% elif item['category'] in ('Internet/Wi-Fi', 'Wi-Fi & Network') %}
+                                    <i class="fa-solid fa-wifi" style="color: var(--secondary);"></i>
+                                {% elif item['category'] in ('Classroom Infrastructure', 'Classroom & Labs') %}
+                                    <i class="fa-solid fa-chalkboard-user" style="color: var(--primary);"></i>
+                                {% elif item['category'] in ('Sanitation/Housekeeping', 'Cleanliness & Hygiene') %}
+                                    <i class="fa-solid fa-broom" style="color: var(--status-resolved);"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-wrench" style="color: var(--text-muted);"></i>
+                                {% endif %}
+                                {{ item['category'] }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="location-snippet">
+                                <i class="fa-solid fa-location-dot" style="color: var(--status-urgent);"></i>
+                                <span>
+                                    <strong>{{ item['location_block'] or item['location'] }}</strong>
+                                    {% if item['location_room'] %}<br><span style="color: var(--text-muted); font-size: 0.78rem;">{{ item['location_room'] }}</span>{% endif %}
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="severity-pill {{ item['priority']|lower }}">
+                                <span class="sev-dot"></span> {{ item['priority'] }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if item['status'] == 'Resolved' %}
+                                <span class="sla-countdown on-track" style="border-style: solid;">
+                                    <i class="fa-solid fa-check"></i> Met SLA
+                                </span>
+                            {% else %}
+                                <span class="sla-countdown {{ item['sla_countdown_class'] or ('breached' if item['elapsed_hours'] > 48 else ('warning' if item['elapsed_hours'] > 24 else 'on-track')) }}">
+                                    <i class="fa-solid fa-stopwatch"></i> {{ item['sla_countdown'] or 'Within SLA' }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item['status'] in ('Reported', 'Pending') %}
+                                <span class="badge badge-pending"><span class="badge-dot"></span> Reported</span>
+                            {% elif item['status'] == 'Under Review' %}
+                                <span class="badge badge-progress" style="background: rgba(112, 214, 198, 0.18); color: #70D6C6;"><span class="badge-dot"></span> Review</span>
+                            {% elif item['status'] in ('In Progress', 'Assigned') %}
+                                <span class="badge badge-progress"><span class="badge-dot"></span> In Progress</span>
+                            {% else %}
+                                <span class="badge badge-resolved"><span class="badge-dot"></span> Resolved</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            <a href="{{ url_for('track_issue_detail', tracking_id=item['ticket_id'] or item['tracking_id']) }}" class="btn btn-secondary btn-sm" title="Track issue lifecycle">
+                                <i class="fa-solid fa-timeline"></i> Track
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-card">
+            <i class="fa-solid fa-inbox"></i>
+            <h4>No grievances found</h4>
+            <p>You haven't reported any issues matching this filter yet, or all your campus facility concerns have been resolved.</p>
+            <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                {% if search_query or current_filter != 'all' %}
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Filter
+                </a>
+                {% endif %}
+                <a href="{{ url_for('report_issue') }}" class="btn btn-primary btn-sm btn-glow">
+                    <i class="fa-solid fa-plus-circle"></i> Lodge Grievance
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

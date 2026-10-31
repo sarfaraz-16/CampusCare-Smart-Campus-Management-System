@@ -1,0 +1,641 @@
+{% extends "base.html" %}
+
+{% block title %}Administrator Operations Hub – CampusCare{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <!-- Admin Sidebar -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-user">
+            <div class="user-avatar" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%); color: var(--canvas);">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="user-meta">
+                <h5>{{ current_user['name'] }}</h5>
+                <span class="user-role-badge" style="color: var(--secondary);">Campus Admin</span>
+            </div>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li class="sidebar-heading">Admin Central</li>
+            <li>
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-table-list"></i>
+                    <span>All Grievances</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_announcements') }}" class="sidebar-link">
+                    <i class="fa-solid fa-bullhorn text-amber-400"></i>
+                    <span>Broadcast Notices</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('analytics') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-pie text-cyan-400"></i>
+                    <span>Visual Analytics</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('track_issue') }}" class="sidebar-link">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Track Ticket ID</span>
+                </a>
+            </li>
+
+            <li class="sidebar-heading">Filter by Status</li>
+            <li>
+                <a href="{{ url_for('admin_dashboard', status='all') }}" class="sidebar-link {% if current_status == 'all' %}active{% endif %}">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>Total ({{ total_issues }})</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_dashboard', status='Reported') }}" class="sidebar-link {% if current_status == 'Reported' %}active{% endif %}">
+                    <i class="fa-solid fa-clock text-amber-400"></i>
+                    <span>Reported ({{ reported_issues }})</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_dashboard', status='Under Review') }}" class="sidebar-link {% if current_status == 'Under Review' %}active{% endif %}">
+                    <i class="fa-solid fa-magnifying-glass text-indigo-400"></i>
+                    <span>Under Review ({{ under_review_issues }})</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_dashboard', status='In Progress') }}" class="sidebar-link {% if current_status == 'In Progress' %}active{% endif %}">
+                    <i class="fa-solid fa-screwdriver-wrench text-blue-400"></i>
+                    <span>In Progress ({{ in_progress_issues }})</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_dashboard', status='Resolved') }}" class="sidebar-link {% if current_status == 'Resolved' %}active{% endif %}">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    <span>Resolved ({{ resolved_issues }})</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #f87171;">
+                <i class="fa-solid fa-arrow-right-from-bracket" style="color: #f87171;"></i>
+                <span>Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Admin Workspace -->
+    <main class="dashboard-main">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-title-group">
+                <h2>Campus Facilities <span class="gradient-text">Operations Hub</span></h2>
+                <p>Triage, dispatch maintenance crews, and manage lifecycle resolution across campus facilities</p>
+            </div>
+            <div class="dashboard-actions">
+                <a href="{{ url_for('admin_export_csv') }}" class="btn btn-secondary" title="Export all campus grievances to CSV">
+                    <i class="fa-solid fa-file-csv text-emerald-400"></i> Export CSV
+                </a>
+                <a href="{{ url_for('admin_announcements') }}" class="btn btn-secondary">
+                    <i class="fa-solid fa-bullhorn"></i> Broadcast Notice
+                </a>
+                <a href="{{ url_for('analytics') }}" class="btn btn-accent">
+                    <i class="fa-solid fa-chart-column"></i> Analytics Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Bento Command Layout (Asymmetric 12-Column Grid) -->
+        <div class="bento-grid">
+            <!-- Bento Cell 1: Primary Hero KPI (Span 4) -->
+            <div class="bento-card bento-col-4">
+                <div class="bento-card-header">
+                    <span class="bento-card-title"><i class="fa-solid fa-gauge-high text-ai"></i> Incident Workload</span>
+                    <span class="bento-meta-pill highlight">{{ active_issues_count }} Active</span>
+                </div>
+                <div>
+                    <div class="bento-hero-number">{{ active_issues_count }}</div>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                        Open tickets requiring operational attention
+                    </div>
+                </div>
+                <div class="bento-pills-row">
+                    <span class="bento-meta-pill" style="border-color: rgba(229, 180, 92, 0.4); color: #E5B45C;">
+                        {{ reported_issues }} Reported
+                    </span>
+                    <span class="bento-meta-pill" style="border-color: rgba(112, 214, 198, 0.4); color: #70D6C6;">
+                        {{ under_review_issues }} In Review
+                    </span>
+                    <span class="bento-meta-pill" style="border-color: rgba(94, 181, 214, 0.4); color: #5EB5D6;">
+                        {{ in_progress_issues }} Dispatched
+                    </span>
+                </div>
+            </div>
+
+            <!-- Bento Cell 2: SLA Response Health (Span 3) -->
+            <div class="bento-card bento-col-3">
+                <div class="bento-card-header">
+                    <span class="bento-card-title"><i class="fa-solid fa-stopwatch text-accent"></i> SLA Health</span>
+                    {% if breached_count > 0 %}
+                        <span class="sla-countdown breached"><i class="fa-solid fa-triangle-exclamation"></i> {{ breached_count }} Breached</span>
+                    {% else %}
+                        <span class="sla-countdown on-track"><i class="fa-solid fa-check"></i> 100% Target</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <div style="font-size: 2.3rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #F0F2E9; line-height: 1.1;">
+                        {{ on_track_count }} <span style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">/ {{ active_issues_count }}</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.35rem;">
+                        Tickets within target SLA limits
+                    </div>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.3rem;">
+                        <span>Resolution Index</span>
+                        <strong style="color: var(--secondary);">{{ sla_compliance_pct }}%</strong>
+                    </div>
+                    <div class="ai-confidence-bar">
+                        <div class="ai-confidence-fill" style="width: {{ sla_compliance_pct }}%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bento Cell 3: Critical Hazards (Span 2) -->
+            <div class="bento-card bento-col-2" style="border-color: {% if urgent_issues > 0 %}rgba(240, 120, 104, 0.45){% else %}var(--border-color){% endif %};">
+                <div class="bento-card-header">
+                    <span class="bento-card-title"><i class="fa-solid fa-triangle-exclamation text-urgent"></i> Hazards</span>
+                    {% if urgent_issues > 0 %}
+                        <span class="heat-dot hazard"></span>
+                    {% else %}
+                        <span class="heat-dot clear"></span>
+                    {% endif %}
+                </div>
+                <div>
+                    <div style="font-size: 2.6rem; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #F07868; line-height: 1;">
+                        {{ urgent_issues }}
+                    </div>
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 0.4rem; line-height: 1.35;">
+                        Life-safety or high-voltage alerts
+                    </div>
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    <a href="{{ url_for('admin_dashboard', priority='Urgent') }}" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.72rem; padding: 0.3rem 0.5rem; justify-content: center;">
+                        Filter Hazards
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bento Cell 4: Command Center Operations (Span 3) -->
+            <div class="bento-card bento-col-3">
+                <div class="bento-card-header">
+                    <span class="bento-card-title"><i class="fa-solid fa-bolt text-accent"></i> Fast Actions</span>
+                    <span class="bento-meta-pill">Direct Ops</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem;">
+                    <a href="{{ url_for('admin_export_csv') }}" class="ai-action-btn" title="Download CSV Audit">
+                        <span><i class="fa-solid fa-file-csv" style="color: #70C9A0; margin-right: 0.45rem;"></i> Audit Report</span>
+                        <i class="fa-solid fa-arrow-down" style="font-size: 0.72rem; color: var(--text-muted);"></i>
+                    </a>
+                    <a href="{{ url_for('admin_announcements') }}" class="ai-action-btn" title="Publish Advisory Broadcast">
+                        <span><i class="fa-solid fa-bullhorn" style="color: #E5B45C; margin-right: 0.45rem;"></i> Campus Advisory</span>
+                        <i class="fa-solid fa-arrow-right" style="font-size: 0.72rem; color: var(--text-muted);"></i>
+                    </a>
+                    <a href="{{ url_for('analytics') }}" class="ai-action-btn" title="Inspect Analytics">
+                        <span><i class="fa-solid fa-chart-pie" style="color: #70D6C6; margin-right: 0.45rem;"></i> Trends & Visuals</span>
+                        <i class="fa-solid fa-arrow-right" style="font-size: 0.72rem; color: var(--text-muted);"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bento Row 2: Campus Geographic Heatmap (Span 8) -->
+            <div class="bento-card bento-col-8 bento-heatmap-card">
+                <div class="bento-card-header">
+                    <div>
+                        <span class="bento-card-title">
+                            <i class="fa-solid fa-map-location-dot text-ai"></i> Geographic Campus Heatmap
+                        </span>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
+                            Live spatial density across academic blocks, labs, and student residential zones
+                        </div>
+                    </div>
+                    <span class="bento-meta-pill"><i class="fa-solid fa-layer-group"></i> 8 Campus Sectors</span>
+                </div>
+
+                <!-- 8-Zone Interactive Floorplan Grid with Scroll Protection -->
+                <div class="campus-heatmap-scroll-wrap">
+                    <div class="campus-heatmap-grid">
+                        {% for zone in heatmap_data %}
+                        <a href="{{ url_for('admin_dashboard', q=zone['code'], _anchor='incidents-table-section') }}" 
+                           class="campus-block-card {% if search_query and (search_query|lower == zone['code']|lower or search_query|lower in zone['name']|lower) %}active-sector{% endif %}" 
+                           title="Click to track incidents in {{ zone['name'] }}">
+                            <div class="block-header">
+                                <span class="block-name"><i class="fa-solid {{ zone['icon'] }}" style="margin-right: 0.35rem; color: var(--secondary);"></i> {{ zone['code'] }}</span>
+                                <span class="heat-dot {{ zone['heat_level'] }}"></span>
+                            </div>
+                            <div class="block-desc">{{ zone['desc'] }}</div>
+                            <div class="block-status-footer">
+                                <span class="status-text">{{ zone['heat_label'] }}</span>
+                                <span class="block-count-badge" style="color: {% if zone['urgent_count'] > 0 %}#F07868{% elif zone['count'] > 0 %}#E5B45C{% else %}#70C9A0{% endif %};">
+                                    {{ zone['count'] }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bento Row 2: Live Incident Activity Stream (Span 4) -->
+            <div class="bento-card bento-col-4">
+                <div class="bento-card-header">
+                    <div>
+                        <span class="bento-card-title">
+                            <i class="fa-solid fa-satellite-dish text-accent"></i> Live Incident Activity Stream
+                        </span>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
+                            Real-time facility events, technician dispatches & safety reports
+                        </div>
+                    </div>
+                    <span class="bento-meta-pill highlight">Live Feed</span>
+                </div>
+
+                <div class="activity-stream-list">
+                    {% if activity_stream %}
+                        {% for act in activity_stream %}
+                        <a href="{{ url_for('track_issue_detail', tracking_id=act['ticket_id']) }}" class="activity-stream-item" title="Jump to {{ act['ticket_id'] }}">
+                            <div class="activity-icon-node {% if act['priority'] == 'Urgent' %}urgent{% elif act['status'] == 'Resolved' %}done{% elif act['status'] == 'In Progress' %}work{% else %}review{% endif %}">
+                                <i class="fa-solid {% if act['priority'] == 'Urgent' %}fa-triangle-exclamation{% elif act['status'] == 'Resolved' %}fa-circle-check{% elif act['status'] == 'In Progress' %}fa-screwdriver-wrench{% else %}fa-clock{% endif %}"></i>
+                            </div>
+                            <div class="activity-info">
+                                <div class="activity-title">{{ act['title'] }}</div>
+                                <div class="activity-meta">
+                                    <span style="color: var(--secondary); font-family: 'JetBrains Mono', monospace;">{{ act['ticket_id'] }}</span>
+                                    <span>&middot;</span>
+                                    <span>{{ act['location_block'] }}</span>
+                                    <span>&middot;</span>
+                                    <span style="color: var(--text-secondary);">{{ act['actor_name'] }}</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">{{ act['created_at']|timeago }}</div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+                            No recent activity recorded.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Toolbar & Master Grievances Table Section (Target Anchor for Heatmap Clicks) -->
+        <div id="incidents-table-section" style="scroll-margin-top: 85px;">
+            {% if search_query %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.15rem; background: rgba(112, 214, 198, 0.1); border: 1px solid rgba(112, 214, 198, 0.35); border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: var(--text-primary);">
+                    <i class="fa-solid fa-location-dot" style="color: var(--secondary);"></i>
+                    <span>Tracking incidents filtered to sector: <strong>{{ search_query }}</strong></span>
+                </div>
+                <a href="{{ url_for('admin_dashboard', _anchor='incidents-table-section') }}" class="btn btn-secondary btn-xs" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-xmark"></i> Show All Campus Sectors
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Filter Toolbar with Segmented Controls -->
+            <div class="filter-toolbar" style="margin-bottom: 1.25rem;">
+                <form method="GET" action="{{ url_for('admin_dashboard') }}" style="display: flex; gap: 1rem; width: 100%; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+                    <!-- Segmented Status Switcher -->
+                    <div class="segmented-filter-bar">
+                        <a href="{{ url_for('admin_dashboard', status='all', category=current_category, priority=current_priority, q=search_query, _anchor='incidents-table-section') }}" 
+                           class="filter-pill-btn {% if current_status == 'all' %}active{% endif %}">
+                            All ({{ total_issues }})
+                        </a>
+                        <a href="{{ url_for('admin_dashboard', status='Reported', category=current_category, priority=current_priority, q=search_query, _anchor='incidents-table-section') }}" 
+                           class="filter-pill-btn {% if current_status == 'Reported' %}active{% endif %}">
+                            Reported ({{ reported_issues }})
+                        </a>
+                        <a href="{{ url_for('admin_dashboard', status='Under Review', category=current_category, priority=current_priority, q=search_query, _anchor='incidents-table-section') }}" 
+                           class="filter-pill-btn {% if current_status == 'Under Review' %}active{% endif %}">
+                            Review ({{ under_review_issues }})
+                        </a>
+                        <a href="{{ url_for('admin_dashboard', status='In Progress', category=current_category, priority=current_priority, q=search_query, _anchor='incidents-table-section') }}" 
+                           class="filter-pill-btn {% if current_status == 'In Progress' %}active{% endif %}">
+                            In Progress ({{ in_progress_issues }})
+                        </a>
+                        <a href="{{ url_for('admin_dashboard', status='Resolved', category=current_category, priority=current_priority, q=search_query, _anchor='incidents-table-section') }}" 
+                           class="filter-pill-btn {% if current_status == 'Resolved' %}active{% endif %}">
+                            Resolved ({{ resolved_issues }})
+                        </a>
+                    </div>
+
+                    <div class="filter-groups">
+                        <!-- Category Filter -->
+                        <select name="category" class="form-select filter-select" onchange="this.form.submit()">
+                            <option value="all" {% if current_category == 'all' %}selected{% endif %}>All Departments</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <!-- Priority Filter -->
+                        <select name="priority" class="form-select filter-select" onchange="this.form.submit()">
+                            <option value="all" {% if current_priority == 'all' %}selected{% endif %}>All Priorities</option>
+                            <option value="Urgent" {% if current_priority == 'Urgent' %}selected{% endif %}>🚨 Urgent</option>
+                            <option value="High" {% if current_priority == 'High' %}selected{% endif %}>🔥 High</option>
+                            <option value="Medium" {% if current_priority == 'Medium' %}selected{% endif %}>⚠️ Medium</option>
+                            <option value="Low" {% if current_priority == 'Low' %}selected{% endif %}>🌱 Low</option>
+                        </select>
+
+                        <!-- Search Input -->
+                        <div class="filter-search" style="min-width: 200px; max-width: 240px;">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" name="q" class="form-control" placeholder="Search ID, room, student..." value="{{ search_query }}">
+                        </div>
+
+                        {% if search_query or current_category != 'all' or current_priority != 'all' or current_status != 'all' %}
+                            <a href="{{ url_for('admin_dashboard', _anchor='incidents-table-section') }}" class="btn btn-secondary btn-sm" title="Clear Filters">
+                                <i class="fa-solid fa-xmark"></i> Clear
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Minimal Sticky Table Section -->
+        {% if issues %}
+        <div class="table-responsive" style="max-height: 650px;">
+            <table class="data-table data-table-sticky data-table-minimal">
+                <thead>
+                    <tr>
+                        <th style="min-width: 140px;">Ticket ID</th>
+                        <th style="min-width: 240px;">Grievance & Details</th>
+                        <th style="min-width: 170px;">Department</th>
+                        <th style="min-width: 140px;">Location</th>
+                        <th style="min-width: 110px;">Severity</th>
+                        <th style="min-width: 150px;">SLA Countdown</th>
+                        <th style="text-align: center; min-width: 150px;">1-Click Status</th>
+                        <th style="text-align: right; min-width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in issues %}
+                    <tr>
+                        <!-- Ticket ID -->
+                        <td>
+                            <span class="tracking-code-pill" data-copy="{{ item['ticket_id'] }}" title="Click to copy">
+                                <i class="fa-solid fa-copy"></i> {{ item['ticket_id'] }}
+                            </span>
+                            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                <i class="fa-regular fa-clock"></i> {{ item['created_at']|timeago }}
+                            </div>
+                        </td>
+
+                        <!-- Grievance Details -->
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.2rem;">
+                                <span class="badge badge-category" style="font-size: 0.72rem; padding: 0.15rem 0.5rem;">
+                                    {{ item['category'] }}
+                                </span>
+                                {% if item['image_url'] %}
+                                    <span class="badge badge-category" title="Has photographic evidence" style="color: var(--secondary);">
+                                        <i class="fa-solid fa-image"></i> Photo
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <strong style="color: var(--text-primary); font-size: 0.92rem; display: block;">{{ item['title'] }}</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;">
+                                {{ item['description'] }}
+                            </div>
+                            {% if item['resolution_notes'] %}
+                                <div style="font-size: 0.74rem; color: var(--status-resolved); margin-top: 0.35rem; display: flex; align-items: center; gap: 0.3rem;">
+                                    <i class="fa-solid fa-check"></i> {{ item['resolution_notes'] }}
+                                </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Assigned Department -->
+                        <td>
+                            <span class="dept-tag">
+                                <i class="fa-solid fa-building-user"></i> {{ item['assigned_dept'] }}
+                            </span>
+                        </td>
+
+                        <!-- Location -->
+                        <td>
+                            <div class="location-snippet">
+                                <i class="fa-solid fa-location-dot" style="color: var(--secondary);"></i>
+                                <span>
+                                    <strong>{{ item['location_block'] }}</strong>
+                                    {% if item['location_room'] %}<br><span style="color: var(--text-muted); font-size: 0.76rem;">{{ item['location_room'] }}</span>{% endif %}
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- Compact Severity Label -->
+                        <td>
+                            <span class="severity-pill {{ item['priority']|lower }}">
+                                {% if item['priority'] == 'Urgent' %}<i class="fa-solid fa-bolt"></i>{% endif %}
+                                {{ item['priority'] }}
+                            </span>
+                        </td>
+
+                        <!-- SLA Countdown -->
+                        <td>
+                            <span class="sla-countdown {{ item['sla_countdown_class'] }}">
+                                <i class="fa-solid {% if item['sla_countdown_class'] == 'breached' %}fa-triangle-exclamation{% elif item['sla_countdown_class'] == 'resolved' %}fa-circle-check{% else %}fa-stopwatch{% endif %}"></i>
+                                {{ item['sla_countdown'] }}
+                            </span>
+                        </td>
+
+                        <!-- Quick 1-Click Status Transitions -->
+                        <td style="text-align: center;">
+                            {% if item['status'] in ('Reported', 'Pending') %}
+                                <form method="POST" action="{{ url_for('admin_quick_status', issue_id=item['id']) }}" style="display: inline;">
+                                    <input type="hidden" name="new_status" value="Under Review">
+                                    <button type="submit" class="quick-status-btn" style="color: #70D6C6; border-color: rgba(112, 214, 198, 0.4);" title="Advance to Under Review">
+                                        <i class="fa-solid fa-magnifying-glass"></i> Start Review
+                                    </button>
+                                </form>
+                            {% elif item['status'] == 'Under Review' %}
+                                <form method="POST" action="{{ url_for('admin_quick_status', issue_id=item['id']) }}" style="display: inline;">
+                                    <input type="hidden" name="new_status" value="In Progress">
+                                    <button type="submit" class="quick-status-btn" style="color: #60a5fa; border-color: rgba(59, 130, 246, 0.4);" title="Assign Technician and Start Work">
+                                        <i class="fa-solid fa-screwdriver-wrench"></i> Dispatch Tech
+                                    </button>
+                                </form>
+                            {% elif item['status'] in ('In Progress', 'Assigned') %}
+                                <button type="button" class="quick-status-btn" style="color: #34d399; border-color: rgba(52, 211, 153, 0.5); background: rgba(16, 185, 129, 0.1);" 
+                                        data-modal-target="modal-resolve-{{ item['id'] }}" title="Mark Issue as Resolved with Notes">
+                                    <i class="fa-solid fa-circle-check"></i> Resolve
+                                </button>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('admin_quick_status', issue_id=item['id']) }}" style="display: inline;">
+                                    <input type="hidden" name="new_status" value="Closed">
+                                    <button type="submit" class="quick-status-btn" style="color: var(--text-muted);" title="Archive / Close Ticket">
+                                        <i class="fa-solid fa-lock"></i> Close
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+
+                        <!-- Action Icons -->
+                        <td style="text-align: right;">
+                            <div style="display: inline-flex; gap: 0.35rem;">
+                                <!-- Update Modal Button -->
+                                <button type="button" class="btn btn-secondary btn-sm" 
+                                        data-modal-target="modal-update-{{ item['id'] }}" 
+                                        title="Edit Status / Priority / Notes">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <!-- View Direct Link -->
+                                <a href="{{ url_for('track_issue_detail', tracking_id=item['ticket_id']) }}" 
+                                   class="btn btn-secondary btn-sm" title="View Full Tracker" target="_blank">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <!-- Delete Button -->
+                                <form method="POST" action="{{ url_for('admin_delete_issue', issue_id=item['id']) }}" 
+                                      onsubmit="return confirm('Delete ticket {{ item['ticket_id'] }}? This action cannot be undone.');" 
+                                      style="display: inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Delete record">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Dedicated 1-Click Resolve Modal for this issue -->
+                            <div id="modal-resolve-{{ item['id'] }}" class="modal-backdrop">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h4 class="modal-title" style="color: #34d399;">
+                                            <i class="fa-solid fa-circle-check"></i> Mark Grievance as Resolved
+                                        </h4>
+                                        <button type="button" class="alert-close" data-modal-close>&times;</button>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('admin_quick_status', issue_id=item['id']) }}">
+                                        <input type="hidden" name="new_status" value="Resolved">
+                                        <div class="modal-body">
+                                            <div style="margin-bottom: 1rem; background: rgba(255, 255, 255, 0.03); padding: 1rem; border-radius: var(--radius-md);">
+                                                <div style="font-weight: 700; color: #fff;">{{ item['title'] }}</div>
+                                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                    {{ item['location_block'] }}{% if item['location_room'] %}, {{ item['location_room'] }}{% endif %} &middot; Ticket {{ item['ticket_id'] }}
+                                                </div>
+                                            </div>
+
+                                            <div class="form-group" style="margin-bottom: 0;">
+                                                <label class="form-label" style="font-weight: 700;">
+                                                    <i class="fa-solid fa-clipboard-check"></i> Resolution Remarks <span style="color: #f87171;">*</span>
+                                                </label>
+                                                <textarea name="resolution_notes" class="form-control" rows="3" 
+                                                          placeholder="e.g. Electrical team replaced faulty 16A breaker panel; wiring tested and certified safe." required>{{ item['resolution_notes'] or '' }}</textarea>
+                                                <div class="form-hint">These resolution remarks will be shown directly to the student on their tracking timeline.</div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+                                            <button type="submit" class="btn btn-primary btn-glow" style="background: #10b981; border-color: #10b981;">
+                                                <i class="fa-solid fa-check-double"></i> Confirm & Resolve
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Full Update Modal for this issue -->
+                            <div id="modal-update-{{ item['id'] }}" class="modal-backdrop">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h4 class="modal-title">
+                                            <i class="fa-solid fa-sliders"></i> Update {{ item['ticket_id'] }}
+                                        </h4>
+                                        <button type="button" class="alert-close" data-modal-close>&times;</button>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('admin_update_issue', issue_id=item['id']) }}">
+                                        <div class="modal-body">
+                                            <div style="margin-bottom: 1.25rem; background: rgba(255, 255, 255, 0.03); padding: 1rem; border-radius: var(--radius-md);">
+                                                <div style="font-weight: 700; color: #fff;">{{ item['title'] }}</div>
+                                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                    {{ item['location_block'] }}{% if item['location_room'] %}, {{ item['location_room'] }}{% endif %}
+                                                </div>
+                                            </div>
+
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                                                <div>
+                                                    <label class="form-label">Workflow Status</label>
+                                                    <select name="status" class="form-select">
+                                                        <option value="Reported" {% if item['status'] in ('Reported', 'Pending') %}selected{% endif %}>Reported</option>
+                                                        <option value="Under Review" {% if item['status'] == 'Under Review' %}selected{% endif %}>Under Review</option>
+                                                        <option value="In Progress" {% if item['status'] in ('In Progress', 'Assigned') %}selected{% endif %}>In Progress</option>
+                                                        <option value="Resolved" {% if item['status'] == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                                        <option value="Closed" {% if item['status'] == 'Closed' %}selected{% endif %}>Closed</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label class="form-label">Triage Priority</label>
+                                                    <select name="priority" class="form-select">
+                                                        <option value="Urgent" {% if item['priority'] == 'Urgent' %}selected{% endif %}>🚨 Urgent</option>
+                                                        <option value="High" {% if item['priority'] == 'High' %}selected{% endif %}>🔥 High</option>
+                                                        <option value="Medium" {% if item['priority'] == 'Medium' %}selected{% endif %}>⚠️ Medium</option>
+                                                        <option value="Low" {% if item['priority'] == 'Low' %}selected{% endif %}>🌱 Low</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="form-group" style="margin-bottom: 0;">
+                                                <label class="form-label">Technician & Resolution Remarks</label>
+                                                <textarea name="resolution_notes" class="form-control" rows="3" 
+                                                          placeholder="e.g. Electrician team dispatched; wiring replaced and breaker tested.">{{ item['resolution_notes'] or '' }}</textarea>
+                                                <div class="form-hint">These notes will be displayed transparently on the student's tracker timeline.</div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+                                            <button type="submit" class="btn btn-primary btn-glow">
+                                                <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-card">
+            <i class="fa-solid fa-inbox"></i>
+            <h4>No incidents match your filter criteria</h4>
+            <p>There are currently no active grievances matching the selected department, status, or search term.</p>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm" style="margin-top: 0.5rem;">
+                <i class="fa-solid fa-arrows-rotate"></i> Reset All Filters
+            </a>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Smoothly scroll down to exact incident tracking table if hash or search query is present
+    if (window.location.hash === '#incidents-table-section' || window.location.search.includes('q=')) {
+        const tableSection = document.getElementById('incidents-table-section');
+        if (tableSection) {
+            setTimeout(() => {
+                tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 90);
+        }
+    }
+});
+</script>
+{% endblock %}

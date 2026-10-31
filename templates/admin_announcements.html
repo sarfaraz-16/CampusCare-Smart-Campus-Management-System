@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Campus Announcements – CampusCare{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <!-- Admin Sidebar -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-user">
+            <div class="user-avatar" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%); color: var(--canvas);">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="user-meta">
+                <h5>{{ current_user['name'] }}</h5>
+                <span class="user-role-badge" style="color: var(--secondary);">Campus Admin</span>
+            </div>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li class="sidebar-heading">Admin Central</li>
+            <li>
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link">
+                    <i class="fa-solid fa-table-list"></i>
+                    <span>All Complaints</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_announcements') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-bullhorn text-amber-400"></i>
+                    <span>Broadcast Notices</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('analytics') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-pie text-cyan-400"></i>
+                    <span>Visual Analytics</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('track_issue') }}" class="sidebar-link">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Track Complaint ID</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #f87171;">
+                <i class="fa-solid fa-arrow-right-from-bracket" style="color: #f87171;"></i>
+                <span>Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="dashboard-main">
+        <div class="dashboard-header">
+            <div class="dashboard-title-group">
+                <h2>Campus <span class="gradient-text">Announcements</span></h2>
+                <p>Broadcast maintenance schedules, safety advisories, and facility alerts to all students</p>
+            </div>
+            <div class="dashboard-actions">
+                <button type="button" class="btn btn-primary btn-glow" data-modal-target="modal-new-announcement">
+                    <i class="fa-solid fa-plus-circle"></i> Create New Broadcast
+                </button>
+            </div>
+        </div>
+
+        <!-- Announcements Grid -->
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1.25rem;">
+            {% if announcements %}
+                {% for item in announcements %}
+                <div class="glass-card" style="padding: 1.75rem; border-left: 4px solid {% if item['priority'] == 'Urgent' %}#ef4444{% elif item['priority'] == 'Important' %}#f59e0b{% else %}var(--primary){% endif %};">
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem;">
+                        <div>
+                            <span class="badge {% if item['priority'] == 'Urgent' %}badge-priority-urgent{% elif item['priority'] == 'Important' %}badge-priority-high{% else %}badge-category{% endif %}" style="margin-bottom: 0.5rem;">
+                                {{ item['priority'] }} Broadcast
+                            </span>
+                            <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff;">{{ item['title'] }}</h3>
+                        </div>
+
+                        <!-- Delete Button -->
+                        <form method="POST" action="{{ url_for('admin_delete_announcement', announcement_id=item['id']) }}"
+                              onsubmit="return confirm('Delete this announcement?');">
+                            <button type="submit" class="btn btn-danger btn-sm" title="Delete notice">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
+                    </div>
+
+                    <p style="color: var(--text-secondary); line-height: 1.6; font-size: 0.95rem; margin-bottom: 1rem;">
+                        {{ item['content'] }}
+                    </p>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-glass); padding-top: 0.75rem;">
+                        <span><i class="fa-solid fa-user-shield text-purple-400"></i> Published by <strong>{{ item['author_name'] }}</strong></span>
+                        <span style="font-family: 'JetBrains Mono', monospace;"><i class="fa-solid fa-clock"></i> {{ item['created_at']|format_dt }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="glass-card empty-state">
+                    <div class="empty-icon"><i class="fa-solid fa-bullhorn"></i></div>
+                    <h4>No active announcements</h4>
+                    <p>Publish an announcement to notify students of upcoming maintenance or power disruptions.</p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<!-- Modal: New Announcement -->
+<div id="modal-new-announcement" class="modal-backdrop">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4 class="modal-title">
+                <i class="fa-solid fa-bullhorn text-amber-400"></i> New Campus Announcement
+            </h4>
+            <button type="button" class="alert-close" data-modal-close>&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('admin_create_announcement') }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="ann-title">Announcement Title <span style="color: #f87171;">*</span></label>
+                    <input type="text" id="ann-title" name="title" class="form-control" 
+                           placeholder="e.g. Scheduled Wi-Fi Core Switch Upgrade" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="ann-priority">Priority Level</label>
+                    <select id="ann-priority" name="priority" class="form-select">
+                        <option value="General">General Notice</option>
+                        <option value="Important" selected>Important Advisory</option>
+                        <option value="Urgent">🚨 Urgent Alert</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="ann-content">Detailed Announcement Message <span style="color: #f87171;">*</span></label>
+                    <textarea id="ann-content" name="content" class="form-control" rows="4" 
+                              placeholder="Provide timeline, affected blocks, and emergency contact details..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+                <button type="submit" class="btn btn-primary btn-glow">
+                    <i class="fa-solid fa-paper-plane"></i> Publish Broadcast
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

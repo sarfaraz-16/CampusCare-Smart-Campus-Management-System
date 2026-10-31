@@ -1,0 +1,28 @@
+# Python virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Bytecode & Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Documentation & planning blueprints (ignored as requested)
+docs/
+hackathon_roadmap_next_steps.md
+implementation_code_blueprints.md
+system_architecture_file_structure.md
+system_workflow.md
+
+# Uploads directory contents (preserve directory via .gitkeep)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDEs and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Register Student Account – CampusCare{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 4rem 1.5rem; max-width: 580px;">
+    <div class="glass-panel" style="padding: 2.5rem 2rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div class="brand-icon" style="width: 52px; height: 52px; margin: 0 auto 1rem; font-size: 1.5rem; background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--primary) 100%);">
+                <i class="fa-solid fa-id-card"></i>
+            </div>
+            <h2 style="font-size: 1.85rem; font-weight: 800; margin-bottom: 0.5rem;">Create Student Account</h2>
+            <p style="color: var(--text-secondary); font-size: 0.95rem;">Join CampusCare to report issues and track campus resolutions</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('register') }}">
+            <div class="form-group">
+                <label class="form-label" for="name"><i class="fa-solid fa-user"></i> Full Name</label>
+                <input type="text" id="name" name="name" class="form-control" placeholder="e.g. Aarav Mehta" required autofocus>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="email"><i class="fa-solid fa-envelope"></i> College Email</label>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="student@campuscare.edu" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="student_id"><i class="fa-solid fa-hashtag"></i> Student / Roll ID</label>
+                    <input type="text" id="student_id" name="student_id" class="form-control" placeholder="CS2026-042" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="department"><i class="fa-solid fa-building-columns"></i> Academic Department</label>
+                <select id="department" name="department" class="form-select" required>
+                    <option value="" disabled selected>Select your department</option>
+                    <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Electronics & Communication">Electronics & Communication</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    <option value="Civil Engineering">Civil Engineering</option>
+                    <option value="Electrical & Electronics">Electrical & Electronics</option>
+                    <option value="Biotechnology">Biotechnology</option>
+                    <option value="Business Administration">Business Administration</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Minimum 6 chars" minlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="confirm_password"><i class="fa-solid fa-check-double"></i> Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Re-type password" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-glow" style="width: 100%; padding: 0.85rem; margin-top: 0.75rem; font-size: 1rem;">
+                <i class="fa-solid fa-user-plus"></i> Complete Registration
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.75rem; font-size: 0.9rem; color: var(--text-secondary); border-top: 1px solid var(--border-glass); padding-top: 1.25rem;">
+            Already have an account? 
+            <a href="{{ url_for('login') }}" style="color: var(--primary-light); font-weight: 600;">Sign in here</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

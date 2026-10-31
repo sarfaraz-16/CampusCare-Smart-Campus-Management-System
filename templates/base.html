@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CampusCare – Smart Campus Management System{% endblock %}</title>
+    <!-- Favicon / Brand Icon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Core Glassmorphism CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Flash Messages Container -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-triangle-exclamation{% elif category == 'warning' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}"></i>
+                        <div>{{ message|safe }}</div>
+                        <button type="button" class="alert-close" aria-label="Close">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar">
+        <div class="container nav-wrapper">
+            <a href="{{ url_for('index') }}" class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <span>Campus<span class="gradient-text-accent">Care</span></span>
+            </a>
+
+            <ul class="nav-links">
+                <li><a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"><i class="fa-solid fa-house"></i> Home</a></li>
+                <li><a href="{{ url_for('track_issue') }}" class="nav-link {% if request.endpoint == 'track_issue' or request.endpoint == 'track_issue_detail' %}active{% endif %}"><i class="fa-solid fa-magnifying-glass"></i> Track Issue</a></li>
+                <li><a href="{{ url_for('analytics') }}" class="nav-link {% if request.endpoint == 'analytics' %}active{% endif %}"><i class="fa-solid fa-chart-pie"></i> Analytics</a></li>
+                <li><a href="{{ url_for('qr_station') }}" class="nav-link {% if request.endpoint == 'qr_station' %}active{% endif %}"><i class="fa-solid fa-qrcode"></i> QR Placards</a></li>
+                {% if current_user %}
+                    {% if current_user['role'] == 'admin' %}
+                        <li><a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"><i class="fa-solid fa-shield-halved"></i> Admin Portal</a></li>
+                        <li><a href="{{ url_for('admin_announcements') }}" class="nav-link {% if request.endpoint == 'admin_announcements' %}active{% endif %}"><i class="fa-solid fa-bullhorn"></i> Announcements</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('student_dashboard') }}" class="nav-link {% if request.endpoint == 'student_dashboard' %}active{% endif %}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
+                        <li><a href="{{ url_for('report_issue') }}" class="nav-link {% if request.endpoint == 'report_issue' %}active{% endif %}"><i class="fa-solid fa-plus-circle"></i> Report Issue</a></li>
+                    {% endif %}
+                {% endif %}
+            </ul>
+
+            <div class="nav-actions">
+                {% if current_user %}
+                    <span class="badge badge-category" style="margin-right: 0.5rem;">
+                        <i class="fa-solid {% if current_user['role'] == 'admin' %}fa-user-shield text-purple-400{% else %}fa-user-graduate text-cyan-400{% endif %}"></i>
+                        {{ current_user['name'].split()[0] }} ({{ current_user['role']|capitalize }})
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-secondary btn-sm">
+                        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                    </a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm btn-glow">
+                        <i class="fa-solid fa-user-plus"></i> Register
+                    </a>
+                {% endif %}
+                <button class="mobile-menu-btn" aria-label="Toggle navigation">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Dynamic Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Modern Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="brand-logo" style="margin-bottom: 0.5rem;">
+                        <div class="brand-icon">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <span>Campus<span class="gradient-text-accent">Care</span></span>
+                    </div>
+                    <p>Next-generation smart campus facility management, automated keyword prioritization, and transparent resolution tracking.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('index') }}">Home Overview</a></li>
+                        <li><a href="{{ url_for('track_issue') }}">Track Complaint</a></li>
+                        <li><a href="{{ url_for('analytics') }}">Live Analytics</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Access Portals</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('login', demo='student') }}">Student Demo Login</a></li>
+                        <li><a href="{{ url_for('login', demo='admin') }}">Admin Demo Login</a></li>
+                        <li><a href="{{ url_for('register') }}">New Registration</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('track_issue') }}"><i class="fa-solid fa-bolt text-amber-400"></i> Electricity</a></li>
+                        <li><a href="{{ url_for('track_issue') }}"><i class="fa-solid fa-droplet text-blue-400"></i> Water Supply</a></li>
+                        <li><a href="{{ url_for('track_issue') }}"><i class="fa-solid fa-wifi text-cyan-400"></i> Wi-Fi & Network</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div>&copy; {{ now.year }} CampusCare – Smart Campus Management System. Built for Hackathons.</div>
+                <div>Status: <span class="badge badge-resolved"><span class="badge-dot"></span> System Operational</span></div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Base Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

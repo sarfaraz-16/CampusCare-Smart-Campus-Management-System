@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Report Campus Issue – CampusCare{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2.5rem 1.5rem; max-width: 1240px;">
+    <!-- Page Header -->
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-sm" style="margin-bottom: 1rem;">
+            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <h2 style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.01em;">
+            Report a <span class="gradient-text-accent">Campus Issue</span>
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 1rem; margin-top: 0.25rem;">
+            Submit your grievance with accurate location details. Our smart heuristic engine will automatically triage category, priority, and check for duplicate reports in real time.
+        </p>
+
+        <!-- QR Code Autofill Notice Badge -->
+        {% if qr_block %}
+        <div class="qr-prefill-badge" style="margin-top: 1rem;">
+            <i class="fa-solid fa-qrcode"></i> 
+            <span>Location auto-filled via QR Code: <strong>{{ qr_block }}</strong>{% if qr_room %} &middot; <strong>{{ qr_room }}</strong>{% endif %}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 2-Column Bento Grid: Grievance Form & Docked AI Panel -->
+    <div class="report-layout-grid">
+        <!-- Left Column: Main Report Form -->
+        <div class="glass-panel" style="padding: 2.25rem 2rem;">
+            <form method="POST" action="{{ url_for('report_issue') }}" enctype="multipart/form-data" id="report-issue-form">
+                <!-- Issue Title -->
+                <div class="form-group">
+                    <label class="form-label" for="issue-title">
+                        <i class="fa-solid fa-heading"></i> Issue Title <span style="color: var(--status-urgent);">*</span>
+                    </label>
+                    <input type="text" id="issue-title" name="title" class="form-control" 
+                           placeholder="e.g. Electrical spark and burning smell from switchboard in Lab 4" required autofocus>
+                    <div class="form-hint">Be specific. Keywords like 'spark', 'leak', 'wifi', 'exam hall', 'broken glass' trigger smart prioritization.</div>
+                </div>
+
+                <!-- Structured Location: Block & Room -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="issue-block">
+                            <i class="fa-solid fa-building"></i> Campus Block / Building <span style="color: var(--status-urgent);">*</span>
+                        </label>
+                        <input type="text" id="issue-block" name="location_block" class="form-control" 
+                               placeholder="e.g. Science Block B, Central Library, CSE Block" 
+                               value="{{ qr_block or '' }}" required>
+                        <div class="form-hint">Building name or zone on campus.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="issue-room">
+                            <i class="fa-solid fa-door-open"></i> Room / Hall / Landmark
+                        </label>
+                        <input type="text" id="issue-room" name="location_room" class="form-control" 
+                               placeholder="e.g. Room 204 (Lab 4), 2nd Floor Hallway" 
+                               value="{{ qr_room or '' }}">
+                        <div class="form-hint">Room number or specific location marker.</div>
+                    </div>
+                </div>
+
+                <!-- Category & Priority Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="issue-category">
+                            <i class="fa-solid fa-tags"></i> Issue Category
+                        </label>
+                        <select id="issue-category" name="category" class="form-select">
+                            <option value="Auto-Detect">✨ Auto-Detect from Description</option>
+                            <option value="Electrical">⚡ Electrical</option>
+                            <option value="Water & Plumbing">💧 Water & Plumbing</option>
+                            <option value="Internet/Wi-Fi">📶 Internet/Wi-Fi</option>
+                            <option value="Sanitation/Housekeeping">🧹 Sanitation/Housekeeping</option>
+                            <option value="Classroom Infrastructure">🖥️ Classroom Infrastructure</option>
+                            <option value="Other">📦 Other Facilities</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="issue-priority">
+                            <i class="fa-solid fa-flag"></i> Priority Level
+                        </label>
+                        <select id="issue-priority" name="priority" class="form-select">
+                            <option value="Auto">⚡ Auto-Calculate Priority (Recommended)</option>
+                            <option value="Urgent">🚨 Urgent (Hazard / Emergency)</option>
+                            <option value="High">🔥 High (Disrupts Classes / Exams)</option>
+                            <option value="Medium">⚠️ Medium (Standard Disruption)</option>
+                            <option value="Low">🌱 Low (Minor / Cosmetic)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Detailed Description -->
+                <div class="form-group">
+                    <label class="form-label" for="issue-description">
+                        <i class="fa-solid fa-align-left"></i> Detailed Description <span style="color: var(--status-urgent);">*</span>
+                    </label>
+                    <textarea id="issue-description" name="description" class="form-control" rows="5" 
+                              placeholder="Describe the issue in detail. What is broken? Is there smoke or water leakage? Does it pose a hazard to students or faculty?" required></textarea>
+                </div>
+
+                <!-- Drag & Drop Image Upload Zone -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fa-solid fa-camera"></i> Photographic Evidence (Optional)
+                    </label>
+                    <div class="file-dropzone" id="file-dropzone">
+                        <input type="file" id="file-input" name="image" accept="image/png, image/jpeg, image/jpg, image/webp">
+                        <div class="dropzone-prompt" id="dropzone-prompt">
+                            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.2rem; color: var(--secondary); margin-bottom: 0.5rem;"></i>
+                            <h5 style="font-size: 1rem; margin-bottom: 0.25rem;">Drag & drop photo here, or click to browse</h5>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">Supports PNG, JPG, JPEG, WEBP up to 16MB</p>
+                        </div>
+                    </div>
+                    <!-- Image preview container -->
+                    <div class="file-preview" id="file-preview-container" style="display: none; margin-top: 1rem;">
+                        <div style="position: relative; display: inline-block;">
+                            <img id="file-preview-img" src="" alt="Upload Preview" 
+                                 style="max-height: 180px; max-width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <button type="button" id="btn-remove-file" class="btn btn-danger btn-xs" 
+                                    style="position: absolute; top: 8px; right: 8px; border-radius: 50%; width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                    title="Remove photo">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div id="file-meta-text" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div style="margin-top: 2rem; display: flex; align-items: center; justify-content: flex-end; gap: 1rem;">
+                    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-lg btn-glow">
+                        <i class="fa-solid fa-paper-plane"></i> Submit Grievance
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Column: Docked AI Assistant Panel -->
+        <div style="position: sticky; top: 1.5rem;">
+            <div id="smart-analysis-preview" class="docked-ai-panel">
+                <div class="docked-ai-header">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-brain" style="font-size: 1.15rem; color: var(--secondary);"></i>
+                        <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">AI Triage Assistant</span>
+                    </div>
+                    <span id="ai-status-pulse" class="ai-pulse-badge">
+                        <i class="fa-solid fa-circle" style="font-size: 0.45rem; color: var(--secondary);"></i> Heuristic Active
+                    </span>
+                </div>
+
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.85rem; line-height: 1.45;">
+                    Live copilot monitors title, location, and description patterns to suggest categorization and trigger life-safety protocols.
+                </p>
+
+                <!-- Confidence Indicator Bar -->
+                <div class="ai-confidence-container">
+                    <div class="ai-confidence-label-row">
+                        <span><i class="fa-solid fa-gauge-high" style="color: var(--secondary);"></i> Confidence Metric</span>
+                        <span id="ai-confidence-val" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--secondary);">0%</span>
+                    </div>
+                    <div class="ai-confidence-bar">
+                        <div id="ai-confidence-bar-fill" class="ai-confidence-fill" style="width: 0%;"></div>
+                    </div>
+                    <div id="ai-confidence-hint" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.4rem;">
+                        Awaiting input keywords...
+                    </div>
+                </div>
+
+                <!-- Duplicate Ticket Alert -->
+                <div id="smart-duplicate-alert" class="smart-duplicate-banner" style="display: none; margin-bottom: 0.85rem;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                        <div class="dup-title">Similar Open Grievance Detected</div>
+                        <div id="dup-message" class="dup-desc">An active issue has already been reported at this location.</div>
+                        <div style="margin-top: 0.5rem;">
+                            <a id="dup-ticket-link" href="#" target="_blank" class="btn btn-secondary btn-xs" style="background: rgba(0,0,0,0.3); color: #fff;">
+                                <i class="fa-solid fa-magnifying-glass"></i> View Existing Ticket
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categorization & Priority Recommendation Cards -->
+                <div class="assistant-recommendation-grid" style="grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+                    <div class="rec-box" style="padding: 0.85rem;">
+                        <div class="rec-label" style="font-size: 0.7rem;">Detected Category</div>
+                        <div class="rec-value" id="smart-category-badge" style="font-size: 0.88rem; margin-top: 0.35rem;">
+                            <span style="color: var(--text-muted);">Evaluating...</span>
+                        </div>
+                    </div>
+
+                    <div class="rec-box" style="padding: 0.85rem;">
+                        <div class="rec-label" style="font-size: 0.7rem;">Calculated Priority</div>
+                        <div class="rec-value" style="margin-top: 0.35rem;">
+                            <span id="smart-priority-badge" class="badge badge-priority-medium">Auto</span>
+                        </div>
+                        <div id="smart-priority-reason" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">
+                            Checking hazard triggers...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Matched Keyword Triggers -->
+                <div style="margin-bottom: 0.85rem;">
+                    <div class="rec-label" style="margin-bottom: 0.35rem; font-size: 0.7rem;">Triggered Context Keywords</div>
+                    <div id="smart-keywords-chips" class="keyword-chips">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Contextual text triggers will populate here</span>
+                    </div>
+                </div>
+
+                <!-- Department Routing Preview -->
+                <div style="margin-bottom: 1rem; padding: 0.65rem 0.85rem; background: var(--canvas); border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 0.72rem; color: var(--text-secondary);"><i class="fa-solid fa-building-circle-arrow-right" style="color: var(--secondary);"></i> Target Department</span>
+                    <span id="ai-dept-name" class="dept-tag" style="font-size: 0.72rem;">Pending triage</span>
+                </div>
+
+                <!-- Suggested Actions -->
+                <div>
+                    <div class="rec-label" style="margin-bottom: 0.45rem; font-size: 0.7rem;">Suggested Actions</div>
+                    <div class="ai-suggested-actions-list">
+                        <button type="button" id="btn-apply-suggestion" class="ai-action-btn">
+                            <span style="display: flex; align-items: center; gap: 0.45rem;">
+                                <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--primary);"></i>
+                                <span>Apply Suggestions to Form</span>
+                            </span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                        <button type="button" id="btn-action-escalate" class="ai-action-btn">
+                            <span style="display: flex; align-items: center; gap: 0.45rem;">
+                                <i class="fa-solid fa-shield-halved" style="color: var(--status-urgent);"></i>
+                                <span>Flag Life-Safety Emergency</span>
+                            </span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/smart_classifier.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Track Grievance – CampusCare{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3.5rem 1.5rem; max-width: 920px;">
+    <!-- Page Header & Tracking Search -->
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <span class="badge badge-category" style="margin-bottom: 0.75rem;">
+            <i class="fa-solid fa-radar text-cyan-400"></i> Real-Time Lifecycle Audit
+        </span>
+        <h2 style="font-size: 2.4rem; font-weight: 800;">Track Grievance Status</h2>
+        <p style="color: var(--text-secondary); max-width: 560px; margin: 0.5rem auto 1.75rem;">
+            Enter your unique Grievance Ticket ID (e.g. <code>CC-2026-1001</code>) to inspect live progress, assigned technicians, and resolution remarks.
+        </p>
+
+        <!-- Search Bar -->
+        <form method="POST" action="{{ url_for('track_issue') }}" style="max-width: 520px; margin: 0 auto; display: flex; gap: 0.75rem;">
+            <input type="text" name="tracking_id" class="form-control" 
+                   placeholder="Enter Ticket ID (e.g. CC-2026-1001)" 
+                   value="{{ searched_id or '' }}" required autofocus style="font-family: 'JetBrains Mono', monospace; font-size: 1.05rem;">
+            <button type="submit" class="btn btn-primary btn-glow">
+                <i class="fa-solid fa-magnifying-glass"></i> Track
+            </button>
+        </form>
+    </div>
+
+    {% if complaint or issue %}
+    {% set item = issue or complaint %}
+    <!-- Detailed Complaint Tracking Card -->
+    <div class="glass-panel" style="padding: 2.5rem 2.25rem;">
+        <!-- Top Status Bar -->
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+            <div>
+                <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Tracking Reference</span>
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
+                    <h3 style="font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; color: #fff;">{{ item['ticket_id'] or item['tracking_id'] }}</h3>
+                    <button class="btn btn-secondary btn-sm" data-copy="{{ item['ticket_id'] or item['tracking_id'] }}" title="Copy Ticket ID">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                <span class="severity-pill {{ item['priority']|lower }}">
+                    {% if item['priority'] == 'Urgent' %}<i class="fa-solid fa-bolt"></i>{% endif %}
+                    Priority: {{ item['priority'] }}
+                </span>
+                <span class="dept-tag">
+                    <i class="fa-solid fa-building-user"></i> {{ item['assigned_dept'] }}
+                </span>
+                <span class="sla-countdown {{ item['sla_countdown_class'] }}">
+                    <i class="fa-solid {% if item['sla_countdown_class'] == 'breached' %}fa-triangle-exclamation{% elif item['sla_countdown_class'] == 'resolved' %}fa-circle-check{% else %}fa-stopwatch{% endif %}"></i>
+                    SLA: {{ item['sla_countdown'] }}
+                </span>
+                {% if item['status'] in ('Reported', 'Pending') %}
+                    <span class="badge badge-pending" style="font-size: 0.82rem; padding: 0.35rem 0.85rem;"><span class="badge-dot"></span> Reported</span>
+                {% elif item['status'] == 'Under Review' %}
+                    <span class="badge badge-progress" style="font-size: 0.82rem; padding: 0.35rem 0.85rem; background: rgba(112, 214, 198, 0.18); color: #70D6C6;"><span class="badge-dot"></span> Under Review</span>
+                {% elif item['status'] in ('In Progress', 'Assigned') %}
+                    <span class="badge badge-progress" style="font-size: 0.82rem; padding: 0.35rem 0.85rem;"><span class="badge-dot"></span> In Progress</span>
+                {% else %}
+                    <span class="badge badge-resolved" style="font-size: 0.82rem; padding: 0.35rem 0.85rem;"><span class="badge-dot"></span> Resolved</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Issue Details & Connected Vertical Timeline Grid -->
+        <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 2.25rem; align-items: start;">
+            <!-- Left Info Column -->
+            <div>
+                <h4 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.75rem; color: #fff;">
+                    {{ item['title'] }}
+                </h4>
+                
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem;">
+                        Description
+                    </div>
+                    <p style="color: var(--text-primary); line-height: 1.6; font-size: 0.95rem;">
+                        {{ item['description'] }}
+                    </p>
+                </div>
+
+                <!-- Admin Remarks / Technician Resolution Notes -->
+                <div style="background: var(--elevated); border: 1px solid {% if item['resolution_notes'] or item['admin_notes'] %}rgba(112, 201, 160, 0.5){% else %}rgba(112, 214, 198, 0.35){% endif %}; border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.82rem; font-weight: 700; color: {% if item['resolution_notes'] or item['admin_notes'] %}var(--status-resolved){% else %}var(--secondary){% endif %}; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <i class="fa-solid fa-user-shield"></i> Administration & Technician Remarks
+                        </span>
+                        {% if item['updated_at'] %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Updated: {{ item['updated_at']|format_dt }}</span>
+                        {% endif %}
+                    </div>
+                    <p style="font-size: 0.95rem; color: #e2e8f0; line-height: 1.5; margin: 0;">
+                        {% if item['resolution_notes'] or item['admin_notes'] %}
+                            <i class="fa-solid fa-quote-left text-emerald-400" style="margin-right: 0.35rem; font-size: 0.85rem;"></i>
+                            <strong>{{ item['resolution_notes'] or item['admin_notes'] }}</strong>
+                        {% else %}
+                            <em style="color: var(--text-muted);">No resolution remarks recorded yet. Facility team is reviewing the report.</em>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Collaborative Communication / Comments Thread -->
+                <div style="margin-top: 2rem;">
+                    <h5 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-comments text-primary-light"></i> Grievance Audit & Updates Feed
+                    </h5>
+
+                    <!-- Comments List -->
+                    <div class="comment-thread">
+                        {% if comments %}
+                            {% for c in comments %}
+                            <div class="comment-card {% if c['author_role'] == 'admin' %}staff{% endif %}">
+                                <div class="comment-header">
+                                    <div class="comment-author">
+                                        {% if c['author_role'] == 'admin' %}
+                                            <i class="fa-solid fa-shield-halved text-primary-light"></i>
+                                            <span>{{ c['author_name'] }} <span class="badge badge-category" style="font-size: 0.65rem; padding: 0.1rem 0.4rem;">Staff</span></span>
+                                        {% else %}
+                                            <i class="fa-solid fa-user-graduate text-cyan-400"></i>
+                                            <span>{{ c['author_name'] }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="comment-time">{{ c['created_at']|format_dt }}</span>
+                                </div>
+                                <div class="comment-body">{{ c['comment'] }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">No updates or messages posted yet.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Post Follow-up Comment Form (If user is logged in) -->
+                    {% if current_user %}
+                    <form method="POST" action="{{ url_for('add_issue_comment', issue_id=item['id']) }}" style="margin-top: 1.5rem;">
+                        <div class="form-group" style="margin-bottom: 0.75rem;">
+                            <label class="form-label" style="font-size: 0.85rem;">Post an update or question</label>
+                            <textarea name="comment" class="form-control" rows="2" placeholder="e.g. Please note electrician can visit between 2 PM and 5 PM..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-secondary btn-sm">
+                            <i class="fa-solid fa-paper-plane"></i> Send Note
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right Column: Connected Vertical Timeline & Incident Metadata -->
+            <div>
+                <!-- Connected Vertical Timeline Stepper Card -->
+                <div class="bento-card" style="margin-bottom: 1.5rem;">
+                    <div class="bento-card-header">
+                        <span class="bento-card-title">
+                            <i class="fa-solid fa-timeline text-accent"></i> Incident Lifecycle
+                        </span>
+                        <span class="bento-meta-pill highlight">Vertical Stepper</span>
+                    </div>
+
+                    <!-- Connected Vertical Timeline Component -->
+                    <div class="vertical-timeline">
+                        <!-- Step 1: Grievance Lodged -->
+                        <div class="vt-item completed">
+                            <div class="vt-node">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <div class="vt-content">
+                                <div class="vt-header">
+                                    <span class="vt-title">1. Grievance Lodged</span>
+                                    <span class="vt-badge completed">Completed</span>
+                                </div>
+                                <div class="vt-desc">Report recorded by {{ item['student_name'] }} with campus location coordinates.</div>
+                                <div class="vt-time">{{ item['created_at']|format_dt }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Administrative Review & Triage -->
+                        <div class="vt-item {% if item['step2_completed'] %}completed{% elif item['step2_active'] %}active{% else %}pending{% endif %}">
+                            <div class="vt-node">
+                                {% if item['step2_completed'] %}
+                                    <i class="fa-solid fa-check"></i>
+                                {% elif item['step2_active'] %}
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-dot"></i>
+                                {% endif %}
+                            </div>
+                            <div class="vt-content">
+                                <div class="vt-header">
+                                    <span class="vt-title">2. Safety Triage & SLA</span>
+                                    {% if item['step2_completed'] %}
+                                        <span class="vt-badge completed">Verified</span>
+                                    {% elif item['step2_active'] %}
+                                        <span class="vt-badge active">In Review</span>
+                                    {% else %}
+                                        <span class="vt-badge pending">Pending</span>
+                                    {% endif %}
+                                </div>
+                                <div class="vt-desc">
+                                    {% if item['step2_completed'] or item['step2_active'] %}
+                                        Triaged as {{ item['category'] }} with {{ item['sla_limit'] }}h SLA window.
+                                    {% else %}
+                                        Awaiting operator triage inspection.
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Technician Work Order -->
+                        <div class="vt-item {% if item['step3_completed'] %}completed{% elif item['step3_active'] %}active{% else %}pending{% endif %}">
+                            <div class="vt-node">
+                                {% if item['step3_completed'] %}
+                                    <i class="fa-solid fa-check"></i>
+                                {% elif item['step3_active'] %}
+                                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-dot"></i>
+                                {% endif %}
+                            </div>
+                            <div class="vt-content">
+                                <div class="vt-header">
+                                    <span class="vt-title">3. Crew Dispatched</span>
+                                    {% if item['step3_completed'] %}
+                                        <span class="vt-badge completed">Dispatched</span>
+                                    {% elif item['step3_active'] %}
+                                        <span class="vt-badge active">On Site</span>
+                                    {% else %}
+                                        <span class="vt-badge pending">Pending</span>
+                                    {% endif %}
+                                </div>
+                                <div class="vt-desc">
+                                    {% if item['step3_completed'] or item['step3_active'] %}
+                                        Work order active with {{ item['assigned_dept'] }} crew.
+                                    {% else %}
+                                        Technician will be scheduled post-review.
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Verification & Resolution -->
+                        <div class="vt-item {% if item['step4_completed'] %}completed{% else %}pending{% endif %}">
+                            <div class="vt-node">
+                                {% if item['step4_completed'] %}
+                                    <i class="fa-solid fa-flag-checkered"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-dot"></i>
+                                {% endif %}
+                            </div>
+                            <div class="vt-content">
+                                <div class="vt-header">
+                                    <span class="vt-title">4. Verified Resolution</span>
+                                    {% if item['step4_completed'] %}
+                                        <span class="vt-badge completed" style="color: #70C9A0;">Resolved</span>
+                                    {% else %}
+                                        <span class="vt-badge pending">Pending</span>
+                                    {% endif %}
+                                </div>
+                                <div class="vt-desc">
+                                    {% if item['step4_completed'] %}
+                                        Field repairs certified and verified safe with student confirmation.
+                                    {% else %}
+                                        Final sign-off once physical repairs are completed.
+                                    {% endif %}
+                                </div>
+                                <div class="vt-time">
+                                    {% if item['resolved_at'] %}
+                                        {{ item['resolved_at']|format_dt }}
+                                    {% else %}
+                                        Target: {{ item['sla_limit'] }}h SLA window
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Incident Metadata Card -->
+                <div class="bento-card">
+                    <div class="bento-card-header">
+                        <span class="bento-card-title">
+                            <i class="fa-solid fa-circle-info text-ai"></i> Incident Metadata
+                        </span>
+                        <span class="bento-meta-pill">{{ item['location_block'] }}</span>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.5rem;">
+                        <div>
+                            <span style="font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Department</span>
+                            <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-top: 0.15rem;">
+                                {{ item['assigned_dept'] }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <span style="font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Campus Location</span>
+                            <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-top: 0.15rem;">
+                                <i class="fa-solid fa-location-dot" style="color: var(--secondary); margin-right: 0.35rem;"></i>
+                                {{ item['location_block'] }}{% if item['location_room'] %}, Room {{ item['location_room'] }}{% endif %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <span style="font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Reported By</span>
+                            <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-top: 0.15rem;">
+                                {{ item['student_name'] }}
+                            </div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">
+                                {{ item['department'] }} ({{ item['student_code'] or item['student_id'] }})
+                            </div>
+                        </div>
+
+                        <div>
+                            <span style="font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Logged Timestamp</span>
+                            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; color: var(--text-secondary); margin-top: 0.15rem;">
+                                {{ item['created_at']|format_dt }} ({{ item['created_at']|timeago }})
+                            </div>
+                        </div>
+
+                        {% set img = item['image_url'] or item['image_filename'] %}
+                        {% if img %}
+                        <div style="margin-top: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                            <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                                Photographic Evidence
+                            </span>
+                            <a href="{{ url_for('static', filename='uploads/' + img) }}" target="_blank">
+                                <img src="{{ url_for('static', filename='uploads/' + img) }}" 
+                                     alt="Grievance Evidence" 
+                                     style="border-radius: var(--radius-sm); border: 1px solid var(--border-color); max-height: 140px; width: 100%; object-fit: cover; display: block;">
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
